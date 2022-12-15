@@ -1,3 +1,5 @@
+//fazer com knex!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 const { hash, compare } = require("bcryptjs"); //criptografia + comparação de senha
 
 const AppError = require("../utils/AppError"); 
@@ -48,11 +50,11 @@ class UsersController {
         user.name = name ?? user.name; //é ele, ou ele mesmo
         user.email = email ?? user.email;
 
-        if (password && !old_password) { //informou a senha nova, mas não a antiga
+        if (password && !old_password) { 
             throw new AppError("Você precisa informar a senha antiga")
         }
 
-        if (password && old_password) { //informou a senha nova e a antiga, comparar:
+        if (password && old_password) { 
             const checkOldPassword = await compare(old_password, user.password); 
 
             if (!checkOldPassword) {
