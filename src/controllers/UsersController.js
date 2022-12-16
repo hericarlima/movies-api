@@ -1,47 +1,43 @@
-//fazer com knex!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
 const { hash, compare } = require("bcryptjs"); //criptografia + comparação de senha
 
 const AppError = require("../utils/AppError"); 
 
-const sqliteConnection = require("../database/sqlite"); 
-
+const knex = require("../database/knex");
 
 class UsersController {  
     async create(request, response) {
+
         const { name, email, password } = request.body; 
 
-        const database = await sqliteConnection(); 
+        const userExists = await knex.select("email").from("users").where("email", email)
+  
+        if (userExists.length === 0) {
+            const hashedPassword = await hash(password, 8) //criptografia
 
-        const checkUserExists = await database.get("SELECT * FROM users WHERE email = (?)", [email]) //se o email cadastrado já existe
-        
-        if(checkUserExists) { 
-            throw new AppError("Esse e-mail já está em uso.");
+            await knex("users").insert({
+                name,
+                email,
+                password: hashedPassword
+            });
+
+        } else {
+            throw new AppError("Este e-mail ja esta em uso")
         }
-
-        const hashedPassword = await hash(password, 8) //criptografia da senha
-
-        await database.run( 
-            "INSERT INTO users (name, email, password) VALUES (?, ?, ?)",
-            [name, email, hashedPassword]
-        );
-
-        return response.status(201).json();
+  
+        return response.status(201).json()
     }
 
     async update(request, response) {
         const { name, email, password, old_password } = request.body;
         const { id } = request.params;
 
-        const database = await sqliteConnection();
-        
-        const user = await database.get("SELECT * FROM users WHERE id = (?)", [id]);
+        const user = await knex.select("id").from("users").where("id", id)
 
         if (!user) { 
             throw new AppError("Usuário não encontrado")
         }
 
-        const userWithUpdateEmail = await database.get("SELECT * FROM users WHERE email = (?)", [email]); //se o email é do próprio usuário
+        const userWithUpdateEmail = await knex.select('email').from('users').where('email', email)
 
         if(userWithUpdateEmail && userWithUpdateEmail.id !== user.id) { 
             throw new AppError("Esse e-mail já está em uso")
@@ -64,11 +60,13 @@ class UsersController {
             user.password = await hash(password, 8); //criptografia
         }
 
-        await database.run(`
-            UPDATE users SET name = ?, email = ?, password = ?, updated_at = DATETIME('now') 
-            WHERE id = ?`, 
-            [user.name, user.email, user.password, id]
-        );
+        await knex("users").insert({
+            name,
+            email,
+            password: hashedPassword,
+            id,
+            update_at: dateTime('now')
+        });
 
         return response.json();
     }   
