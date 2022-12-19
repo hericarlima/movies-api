@@ -28,48 +28,44 @@ class UsersController {
     }
 
     async update(request, response) {
-        const { name, email, password, old_password } = request.body;
-        const { id } = request.params;
+        const user_id = request.user.id
+        const { name, email, password, new_password } = request.body
 
-        const user = await knex.select("id").from("users").where("id", id)
+        const userExists = await knex('users').where({ email })
 
-        if (!user) { 
-            throw new AppError("Usuário não encontrado")
+        if (userExists.length === 1 && userExists[0].id !== user_id) {
+            throw new AppError('Email já cadastrado')
         }
 
-        const userWithUpdateEmail = await knex.select('email').from('users').where('email', email)
+        if (password && new_password) {
+            const validUserPassword = await knex
+            .select('password')
+            .from('users')
+            .where('id', user_id)
 
-        if(userWithUpdateEmail && userWithUpdateEmail.id !== user.id) { 
-            throw new AppError("Esse e-mail já está em uso")
-        }
-
-        user.name = name ?? user.name; //é ele, ou ele mesmo
-        user.email = email ?? user.email;
-
-        if (password && !old_password) { 
-            throw new AppError("Você precisa informar a senha antiga")
-        }
-
-        if (password && old_password) { 
-            const checkOldPassword = await compare(old_password, user.password); 
-
+            const checkOldPassword = await compare(
+                password,
+                validUserPassword[0].password
+            )
+      
+            const att_password = await hash(new_password, 8)
+            
             if (!checkOldPassword) {
-                throw new AppError("A senha antiga não confere");
+                throw new AppError('A senha antiga nao confere')
             }
 
-            user.password = await hash(password, 8); //criptografia
+            const user_update = await knex('users').where('id', user_id).update({
+                password: att_password
+            })
         }
 
-        await knex("users").insert({
+        const user_update = await knex('users').where('id', user_id).update({
             name,
-            email,
-            password: hashedPassword,
-            id,
-            update_at: dateTime('now')
-        });
+            email
+        })
 
-        return response.json();
-    }   
+        return response.json()
+    }
 }
 
 module.exports = UsersController;
