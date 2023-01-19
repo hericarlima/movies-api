@@ -3,6 +3,7 @@ require("express-async-errors");
 const sqliteConnection = require("./database/sqlite");
 
 const AppError = require("./utils/AppError");
+const uploadConfig = require("./configs/upload");
 
 const express = require("express");
 
@@ -12,6 +13,8 @@ sqliteConnection();
 
 const app = express();
 app.use(express.json());
+
+app.use("/files", express.static(uploadConfig.UPLOADS_FOLDER)); //servir arquivos
 
 app.use(routes);
 
