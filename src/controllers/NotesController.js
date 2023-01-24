@@ -7,7 +7,7 @@ class NotesController {
         const user_id = request.user.id;
 
         //recebe os dados + insere + retorna id da nota
-        const note_id = await knex("notes").insert({ 
+        const [ note_id ] = await knex("notes").insert({ 
             title,
             description,
             rating,
