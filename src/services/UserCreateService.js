@@ -1,4 +1,4 @@
-const { hash, compare } = require("bcryptjs"); //criptografia + comparação de senha
+const { hash } = require("bcryptjs"); 
 const AppError = require("../utils/AppError"); 
 
 class UserCreateService {
@@ -12,8 +12,9 @@ class UserCreateService {
         if (userExists.length === 0) {
             const hashedPassword = await hash(password, 8) //criptografia
 
-            await this.userRepository.create({ name, email, password: hashedPassword });
+            const userCreated = await this.userRepository.create({ name, email, password: hashedPassword });
 
+            return userCreated;
         } else {
             throw new AppError("Este e-mail já está em uso.")
         }
