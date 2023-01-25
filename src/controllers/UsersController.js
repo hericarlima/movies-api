@@ -1,6 +1,5 @@
-const { hash, compare } = require("bcryptjs"); //criptografia + comparação de senha
-
-const AppError = require("../utils/AppError"); 
+const UserRepository = require("../repositories/UserRepository");
+const UserCreateService = require("../services/UserCreateService");
 
 const knex = require("../database/knex");
 
@@ -9,21 +8,11 @@ class UsersController {
     async create(request, response) {
         const { name, email, password } = request.body; 
 
-        const userExists = await knex.select("email").from("users").where("email", email)
-  
-        if (userExists.length === 0) {
-            const hashedPassword = await hash(password, 8) //criptografia
+        const userRepository = new UserRepository();
+        const userCreateService = new UserCreateService(userRepository);
 
-            await knex("users").insert({
-                name,
-                email,
-                password: hashedPassword
-            });
+        await userCreateService.execute({ name, email, password });
 
-        } else {
-            throw new AppError("Este e-mail ja esta em uso")
-        }
-  
         return response.status(201).json()
     }
 
@@ -34,7 +23,7 @@ class UsersController {
         const userExists = await knex('users').where({ email })
         
         if (userExists.length === 1 && userExists[0].id !== user_id) {
-            throw new AppError('Email já cadastrado')
+            throw new AppError('Email já cadastrado!')
         }
 
         if (password && new_password) {
@@ -48,7 +37,7 @@ class UsersController {
             const att_password = await hash(new_password, 8)
             
             if (!checkOldPassword) {
-                throw new AppError('A senha antiga nao confere')
+                throw new AppError('A senha antiga não confere.')
             }
 
             await knex('users').where('id', user_id).update({ password: att_password })
